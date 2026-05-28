@@ -1,13 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Mail, Lock, User, ArrowRight, Github } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { register } from "@/services/authService";
 
 export default function SignupPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const role = searchParams?.get("role") || "user";
+  const role = searchParams?.get("role") || "creator";
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const getRoleDisplayName = () => {
     switch(role) {
@@ -16,6 +25,33 @@ export default function SignupPage() {
       case "freelancer": return "Freelancer";
       case "jobseeker": return "Job Seeker";
       default: return "Member";
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const result = await register({ name, email, password, role });
+
+    if (!result.success) {
+      // Expected API errors (e.g. "User already exists") — show inline, no overlay
+      setError(result.error || "Registration failed. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // Success — save token and redirect
+    localStorage.setItem("token", result.data!.token);
+    localStorage.setItem("user", JSON.stringify(result.data!.user));
+
+    if (role === "creator") {
+      router.push("/dashboard/creator");
+    } else if (role === "business") {
+      router.push("/dashboard/business");
+    } else {
+      router.push("/discover");
     }
   };
 
@@ -38,7 +74,7 @@ export default function SignupPage() {
           </p>
           
           <div className="mt-12 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl">
-            <p className="text-white font-medium italic mb-4">"Finding local creators for our restaurant launch was incredibly easy. Highly recommended platform!"</p>
+            <p className="text-white font-medium italic mb-4">&quot;Finding local creators for our restaurant launch was incredibly easy. Highly recommended platform!&quot;</p>
             <p className="text-sm text-green-200">- Ramesh, Local Business Owner</p>
           </div>
         </div>
@@ -69,7 +105,19 @@ export default function SignupPage() {
             <p className="text-gray-500">Enter your details to get started.</p>
           </div>
 
-          <form className="space-y-5">
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
               <div className="relative">
@@ -78,6 +126,9 @@ export default function SignupPage() {
                 </div>
                 <input
                   type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                   className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all bg-gray-50/50"
                   placeholder="John Doe"
                 />
@@ -92,6 +143,9 @@ export default function SignupPage() {
                 </div>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all bg-gray-50/50"
                   placeholder="hello@example.com"
                 />
@@ -106,6 +160,10 @@ export default function SignupPage() {
                 </div>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                   className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all bg-gray-50/50"
                   placeholder="••••••••"
                 />
@@ -121,8 +179,16 @@ export default function SignupPage() {
               </p>
             </div>
 
-            <button type="button" className="w-full flex items-center justify-center gap-2 bg-brand-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98] mt-2">
-              Create Account <ArrowRight className="w-5 h-5" />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-brand-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
+              ) : (
+                <>Create Account <ArrowRight className="w-5 h-5" /></>
+              )}
             </button>
           </form>
 

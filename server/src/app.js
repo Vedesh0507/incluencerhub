@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
+const creatorRoutes = require('./routes/creatorRoutes');
+const collaborationRoutes = require('./routes/collaborationRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -19,6 +21,8 @@ app.use(express.urlencoded({ extended: true }));
 // API Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/creators', creatorRoutes);
+app.use('/api/collaborations', collaborationRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);

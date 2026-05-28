@@ -1,10 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Mail, Lock, ArrowRight, Github } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Mail, Lock, ArrowRight, Github, Loader2, AlertCircle } from "lucide-react";
+import { login } from "@/services/authService";
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const result = await login({ email, password });
+
+    if (!result.success) {
+      // Expected API errors (e.g. "Invalid email or password") — show inline, no overlay
+      setError(result.error || "Login failed. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // Success — save token and redirect
+    localStorage.setItem("token", result.data!.token);
+    localStorage.setItem("user", JSON.stringify(result.data!.user));
+
+    const role = result.data!.user.role;
+    if (role === "creator") {
+      router.push("/dashboard/creator");
+    } else if (role === "business") {
+      router.push("/dashboard/business");
+    } else {
+      router.push("/discover");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Left side - Image/Branding */}
@@ -18,7 +56,7 @@ export default function LoginPage() {
               Influence<span className="text-brand-accent">Hub</span>
             </span>
           </Link>
-          <h1 className="text-4xl font-bold mb-6 leading-tight">Welcome back to Vijayawada's Creator Hub</h1>
+          <h1 className="text-4xl font-bold mb-6 leading-tight">Welcome back to Vijayawada&apos;s Creator Hub</h1>
           <p className="text-blue-100 text-lg">
             Connect with local talent, manage your campaigns, and grow your brand organically.
           </p>
@@ -60,7 +98,19 @@ export default function LoginPage() {
             <p className="text-gray-500">Welcome back! Please enter your details.</p>
           </div>
 
-          <form className="space-y-6">
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
               <div className="relative">
@@ -69,6 +119,9 @@ export default function LoginPage() {
                 </div>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all bg-gray-50/50"
                   placeholder="hello@example.com"
                 />
@@ -83,6 +136,10 @@ export default function LoginPage() {
                 </div>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                   className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all bg-gray-50/50"
                   placeholder="••••••••"
                 />
@@ -97,8 +154,16 @@ export default function LoginPage() {
               <a href="#" className="text-sm font-medium text-brand-primary hover:underline">Forgot password?</a>
             </div>
 
-            <button type="button" className="w-full flex items-center justify-center gap-2 bg-brand-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98]">
-              Log in <ArrowRight className="w-5 h-5" />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-brand-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Logging in...</>
+              ) : (
+                <>Log in <ArrowRight className="w-5 h-5" /></>
+              )}
             </button>
           </form>
 
@@ -123,7 +188,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-10 text-center text-sm text-gray-600">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/auth/role" className="font-semibold text-brand-primary hover:underline">
               Sign up
             </Link>
