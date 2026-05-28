@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { getSocket, SOCKET_EVENTS } from "@/services/socketService";
 import {
   Wallet, TrendingUp, Star, Plus, Bell, Search, Edit,
   Share2, Loader2, CheckCircle, XCircle, Clock, AlertCircle,
@@ -441,6 +442,25 @@ export default function CreatorDashboardPage() {
   useEffect(() => {
     fetchStats();
     fetchInbox();
+  }, [fetchStats, fetchInbox]);
+
+  // ── Real-time socket updates ─────────────────────────
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNotification = () => {
+      fetchStats();
+      fetchInbox();
+    };
+
+    socket.on(SOCKET_EVENTS.NOTIFICATION, handleNotification);
+    socket.on(SOCKET_EVENTS.RECEIVE_MESSAGE, handleNotification);
+
+    return () => {
+      socket.off(SOCKET_EVENTS.NOTIFICATION, handleNotification);
+      socket.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleNotification);
+    };
   }, [fetchStats, fetchInbox]);
 
   const handleStatusUpdate = useCallback(async (id: string, status: "accepted" | "rejected") => {

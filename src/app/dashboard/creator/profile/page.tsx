@@ -69,7 +69,7 @@ export default function CreatorProfileFormPage() {
       try {
         // Verify user is a creator
         const userData = await getMe(token);
-        if (userData.user.role !== "creator") {
+        if (!userData.success || !userData.data || userData.data.user.role !== "creator") {
           setLoading(false);
           return;
         }
@@ -80,7 +80,7 @@ export default function CreatorProfileFormPage() {
         const myProfile = creatorsData.creators.find(
           (c: { user: { _id: string } | string }) => {
             const userId = typeof c.user === "object" ? c.user._id : c.user;
-            return userId === userData.user.id;
+            return userId === userData.data!.user.id;
           }
         );
 

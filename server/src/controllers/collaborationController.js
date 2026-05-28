@@ -1,5 +1,6 @@
 const CollaborationRequest = require('../models/CollaborationRequest');
 const CreatorProfile = require('../models/CreatorProfile');
+const { createNotification } = require('./notificationController');
 
 // ── Shared helper: build filter query from query params ──────────────────────
 function buildFilter(base, query) {
@@ -62,6 +63,25 @@ const sendCollaborationRequest = async (req, res) => {
       notes: notes || '',
       status: 'pending',
     });
+
+    // Emit real-time notification to the creator
+    const creatorUser = await CreatorProfile.findById(creatorProfile).select('user');
+    if (creatorUser) {
+      const io = req.app.get('io');
+      const onlineUsers = req.app.get('onlineUsers');
+      await createNotification(
+        {
+          user: creatorUser.user,
+          type: 'collaboration_request',
+          title: 'New Collaboration Request',
+          message: `${req.user.name} sent you a collaboration request: ${campaignTitle}`,
+          link: '/dashboard/creator',
+          relatedUser: req.user._id,
+        },
+        io,
+        onlineUsers
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -258,6 +278,43 @@ const updateCollaborationStatus = async (req, res) => {
     if (status === 'cancelled') collaboration.cancelledAt = new Date();
 
     await collaboration.save();
+
+    // Emit real-time notification for status changes
+    const io = req.app.get('io');
+    const onlineUsers = req.app.get('onlineUsers');
+
+    if (status === 'accepted' || status === 'rejected') {
+      // Notify the business user
+      await createNotification(
+        {
+          user: collaboration.businessUser,
+          type: status === 'accepted' ? 'collaboration_accepted' : 'collaboration_rejected',
+          title: `Collaboration ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `${req.user.name} has ${status} your collaboration request`,
+          link: '/dashboard/business',
+          relatedUser: req.user._id,
+        },
+        io,
+        onlineUsers
+      );
+    } else if (status === 'cancelled') {
+      // Notify the creator
+      const creatorProfile = await CreatorProfile.findById(collaboration.creatorProfile).select('user');
+      if (creatorProfile) {
+        await createNotification(
+          {
+            user: creatorProfile.user,
+            type: 'collaboration_rejected',
+            title: 'Collaboration Cancelled',
+            message: `${req.user.name} has cancelled the collaboration request`,
+            link: '/dashboard/creator',
+            relatedUser: req.user._id,
+          },
+          io,
+          onlineUsers
+        );
+      }
+    }
 
     res.status(200).json({
       success: true,

@@ -5,6 +5,8 @@ const authRoutes = require('./routes/authRoutes');
 const creatorRoutes = require('./routes/creatorRoutes');
 const collaborationRoutes = require('./routes/collaborationRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -25,6 +27,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/creators', creatorRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);

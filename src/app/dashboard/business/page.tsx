@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { getSocket, SOCKET_EVENTS } from "@/services/socketService";
 import {
   Users, TrendingUp, Heart, Bell, Search, Loader2,
   AlertCircle, RefreshCw, CheckCircle, XCircle, Clock,
@@ -293,6 +294,25 @@ export default function BusinessDashboardPage() {
   useEffect(() => {
     fetchStats();
     fetchRequests();
+  }, [fetchStats, fetchRequests]);
+
+  // ── Real-time socket updates ─────────────────────────
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNotification = () => {
+      fetchStats();
+      fetchRequests();
+    };
+
+    socket.on(SOCKET_EVENTS.NOTIFICATION, handleNotification);
+    socket.on(SOCKET_EVENTS.RECEIVE_MESSAGE, handleNotification);
+
+    return () => {
+      socket.off(SOCKET_EVENTS.NOTIFICATION, handleNotification);
+      socket.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleNotification);
+    };
   }, [fetchStats, fetchRequests]);
 
   const handleCancelled = useCallback((id: string) => {
