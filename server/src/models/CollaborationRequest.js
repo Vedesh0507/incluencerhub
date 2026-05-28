@@ -47,8 +47,26 @@ const collaborationRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'rejected', 'completed'],
+      enum: ['pending', 'accepted', 'rejected', 'completed', 'cancelled'],
       default: 'pending',
+    },
+    // Phase 5B additions
+    notes: {
+      type: String,
+      default: '',
+      maxlength: [500, 'Notes cannot exceed 500 characters'],
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    statusUpdatedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

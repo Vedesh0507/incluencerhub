@@ -1,12 +1,11 @@
 const API_BASE = 'http://localhost:5000/api';
 
-// ── Helper to get the JWT token from localStorage ──
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('token');
 }
 
-// ── Shared auth headers ──
 function authHeaders(): Record<string, string> {
   const token = getToken();
   return {
@@ -19,6 +18,8 @@ function authHeaders(): Record<string, string> {
 // TYPES
 // ─────────────────────────────────────────────
 
+export type CollaborationStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+
 export interface SendCollaborationData {
   creatorProfile: string;
   campaignTitle: string;
@@ -28,6 +29,7 @@ export interface SendCollaborationData {
   deliverables?: string[];
   deadline: string;
   platform: string;
+  notes?: string;
 }
 
 export interface CollaborationRequest {
@@ -44,6 +46,7 @@ export interface CollaborationRequest {
     category: string;
     profileImage?: string;
     followers?: number;
+    pricing?: { reel: number; story: number; post: number };
   };
   campaignTitle: string;
   description: string;
@@ -52,7 +55,11 @@ export interface CollaborationRequest {
   deliverables: string[];
   deadline: string;
   platform: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  status: CollaborationStatus;
+  notes?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  statusUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,12 +68,53 @@ export interface CollaborationResult {
   success: boolean;
   data?: CollaborationRequest | CollaborationRequest[];
   count?: number;
+  total?: number;
+  page?: number;
+  totalPages?: number;
   message?: string;
   error?: string;
 }
 
+export interface CreatorStats {
+  total: number;
+  pending: number;
+  accepted: number;
+  rejected: number;
+  completed: number;
+  cancelled: number;
+  totalEarnings: number;
+  activeCollaborations: number;
+}
+
+export interface BusinessStats {
+  total: number;
+  sentRequests: number;
+  pending: number;
+  acceptedCreators: number;
+  rejected: number;
+  completed: number;
+  cancelled: number;
+  activeCampaigns: number;
+  totalBudgetSpent: number;
+}
+
+export interface StatsResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface ListQueryParams {
+  status?: CollaborationStatus;
+  platform?: string;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
 // ─────────────────────────────────────────────
-// Send a collaboration request (business → creator)
+// Send collaboration request (business → creator)
 // POST /api/collaborations
 // ─────────────────────────────────────────────
 export const sendCollaborationRequest = async (
@@ -78,13 +126,8 @@ export const sendCollaborationRequest = async (
       headers: authHeaders(),
       body: JSON.stringify(data),
     });
-
     const json = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: json.message || 'Failed to send collaboration request' };
-    }
-
+    if (!res.ok) return { success: false, error: json.message || 'Failed to send collaboration request' };
     return { success: true, data: json.data, message: json.message };
   } catch {
     return { success: false, error: 'Unable to connect to server. Please try again.' };
@@ -92,71 +135,100 @@ export const sendCollaborationRequest = async (
 };
 
 // ─────────────────────────────────────────────
-// Get creator's collaboration inbox
+// Creator inbox
 // GET /api/collaborations/creator
 // ─────────────────────────────────────────────
-export const getCreatorInbox = async (): Promise<CollaborationResult> => {
+export const getCreatorInbox = async (params?: ListQueryParams): Promise<CollaborationResult> => {
   try {
-    const res = await fetch(`${API_BASE}/collaborations/creator`, {
-      headers: authHeaders(),
-    });
-
+    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    const res = await fetch(`${API_BASE}/collaborations/creator${qs}`, { headers: authHeaders() });
     const json = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: json.message || 'Failed to load inbox' };
-    }
-
-    return { success: true, data: json.data, count: json.count };
+    if (!res.ok) return { success: false, error: json.message || 'Failed to load inbox' };
+    return { success: true, data: json.data, count: json.count, total: json.total, page: json.page, totalPages: json.totalPages };
   } catch {
     return { success: false, error: 'Unable to connect to server. Please try again.' };
   }
 };
 
 // ─────────────────────────────────────────────
-// Get business's sent collaboration requests
+// Business sent requests
 // GET /api/collaborations/business
 // ─────────────────────────────────────────────
-export const getBusinessRequests = async (): Promise<CollaborationResult> => {
+export const getBusinessRequests = async (params?: ListQueryParams): Promise<CollaborationResult> => {
   try {
-    const res = await fetch(`${API_BASE}/collaborations/business`, {
-      headers: authHeaders(),
-    });
-
+    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : '';
+    const res = await fetch(`${API_BASE}/collaborations/business${qs}`, { headers: authHeaders() });
     const json = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: json.message || 'Failed to load requests' };
-    }
-
-    return { success: true, data: json.data, count: json.count };
+    if (!res.ok) return { success: false, error: json.message || 'Failed to load requests' };
+    return { success: true, data: json.data, count: json.count, total: json.total, page: json.page, totalPages: json.totalPages };
   } catch {
     return { success: false, error: 'Unable to connect to server. Please try again.' };
   }
 };
 
 // ─────────────────────────────────────────────
-// Update collaboration status (creator only)
+// Get single collaboration by ID
+// GET /api/collaborations/:id
+// ─────────────────────────────────────────────
+export const getCollaborationById = async (id: string): Promise<CollaborationResult> => {
+  try {
+    const res = await fetch(`${API_BASE}/collaborations/${id}`, { headers: authHeaders() });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.message || 'Failed to load collaboration' };
+    return { success: true, data: json.data };
+  } catch {
+    return { success: false, error: 'Unable to connect to server. Please try again.' };
+  }
+};
+
+// ─────────────────────────────────────────────
+// Update collaboration status
 // PUT /api/collaborations/:id/status
 // ─────────────────────────────────────────────
 export const updateCollaborationStatus = async (
   id: string,
-  status: 'accepted' | 'rejected' | 'completed'
+  status: CollaborationStatus,
+  notes?: string
 ): Promise<CollaborationResult> => {
   try {
     const res = await fetch(`${API_BASE}/collaborations/${id}/status`, {
       method: 'PUT',
       headers: authHeaders(),
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, notes }),
     });
-
     const json = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: json.message || 'Failed to update status' };
-    }
-
+    if (!res.ok) return { success: false, error: json.message || 'Failed to update status' };
     return { success: true, data: json.data, message: json.message };
+  } catch {
+    return { success: false, error: 'Unable to connect to server. Please try again.' };
+  }
+};
+
+// ─────────────────────────────────────────────
+// Creator dashboard stats
+// GET /api/dashboard/creator/stats
+// ─────────────────────────────────────────────
+export const getCreatorStats = async (): Promise<StatsResult<CreatorStats>> => {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/creator/stats`, { headers: authHeaders() });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.message || 'Failed to load stats' };
+    return { success: true, data: json.data };
+  } catch {
+    return { success: false, error: 'Unable to connect to server. Please try again.' };
+  }
+};
+
+// ─────────────────────────────────────────────
+// Business dashboard stats
+// GET /api/dashboard/business/stats
+// ─────────────────────────────────────────────
+export const getBusinessStats = async (): Promise<StatsResult<BusinessStats>> => {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/business/stats`, { headers: authHeaders() });
+    const json = await res.json();
+    if (!res.ok) return { success: false, error: json.message || 'Failed to load stats' };
+    return { success: true, data: json.data };
   } catch {
     return { success: false, error: 'Unable to connect to server. Please try again.' };
   }
