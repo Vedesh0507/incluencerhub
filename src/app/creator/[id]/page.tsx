@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, MapPin, Instagram, Youtube, Share2, MessageCircle, Star, Calendar, ShieldCheck, Mail, Loader2, Linkedin, X, Plus, Trash2, AlertCircle } from "lucide-react";
 import { getCreatorById } from "@/services/creatorService";
-import { mockCreators } from "@/data/mock";
 import { sendCollaborationRequest, type SendCollaborationData } from "@/services/collaborationService";
 import { use } from "react";
 
@@ -39,7 +38,6 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
   const [creator, setCreator] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [usingMock, setUsingMock] = useState(false);
 
   // Collaboration modal state
   const [showCollabModal, setShowCollabModal] = useState(false);
@@ -58,21 +56,17 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
   const [collabSuccess, setCollabSuccess] = useState(false);
   const [collabError, setCollabError] = useState("");
 
-  // Mock creator fallback
-  const mockCreator = mockCreators.find(c => c.id === resolvedParams.id) || mockCreators[0];
-
   useEffect(() => {
     const fetchCreator = async () => {
       setLoading(true);
+      setError("");
       try {
         const data = await getCreatorById(resolvedParams.id);
         setCreator(data.profile);
-        setUsingMock(false);
         // Pre-fill creatorProfile ID once we have the real creator
         setCollabForm((prev) => ({ ...prev, creatorProfile: data.profile._id }));
-      } catch {
-        setUsingMock(true);
-        setError("");
+      } catch (err: any) {
+        setError(err?.message || "Failed to load creator profile");
       } finally {
         setLoading(false);
       }
@@ -122,57 +116,6 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-brand-primary animate-spin mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If using mock fallback
-  if (usingMock) {
-    return (
-      <div className="bg-gray-50 min-h-screen pb-24">
-        {/* Cover Banner */}
-        <div className="relative h-64 md:h-80 w-full overflow-hidden">
-          <div className="absolute inset-0 bg-black/40 z-10" />
-          <img
-            src="https://images.unsplash.com/photo-1542482315-9c98bc325992?w=1600&q=80"
-            alt="Cover Banner"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute top-24 left-4 md:left-8 z-20">
-            <Link href="/discover" className="inline-flex items-center gap-2 text-white/90 hover:text-white bg-black/20 hover:bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm transition-all">
-              <ArrowLeft className="w-4 h-4" /> Back to Search
-            </Link>
-          </div>
-        </div>
-        <div className="container mx-auto px-4 md:px-6 relative z-20 -mt-24">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 mb-8">
-            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-16 sm:-mt-20 mb-6">
-              <img src={mockCreator.image} alt={mockCreator.name} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-lg object-cover bg-white" />
-              <div className="flex-1 w-full">
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                  {mockCreator.name}
-                  {mockCreator.verified && <CheckCircle className="w-6 h-6 text-blue-500" fill="currentColor" />}
-                </h1>
-                <p className="text-brand-primary font-medium text-lg mt-1">{mockCreator.category}</p>
-                <div className="flex items-center gap-4 text-gray-500 mt-2 text-sm">
-                  <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {mockCreator.location}</span>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-gray-100">
-              <div className="text-center"><div className="text-2xl font-bold text-gray-900">{mockCreator.followers}</div><div className="text-sm text-gray-500 mt-1">Total Followers</div></div>
-              <div className="text-center"><div className="text-2xl font-bold text-gray-900">{mockCreator.engagement}</div><div className="text-sm text-gray-500 mt-1">Engagement Rate</div></div>
-              <div className="text-center"><div className="text-2xl font-bold text-gray-900">{mockCreator.priceRange}</div><div className="text-sm text-gray-500 mt-1">Price Range</div></div>
-              <div className="text-center flex flex-col items-center justify-center">
-                <div className="flex gap-1 text-brand-accent"><Star className="w-5 h-5 fill-current" /><Star className="w-5 h-5 fill-current" /><Star className="w-5 h-5 fill-current" /><Star className="w-5 h-5 fill-current" /><Star className="w-5 h-5 fill-current" /></div>
-                <div className="text-sm text-gray-500 mt-1">4.9/5</div>
-              </div>
-            </div>
-          </motion.div>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center text-sm text-yellow-700 font-medium">
-            Showing preview data — backend API is not connected yet. Create some creator profiles to see live data!
-          </div>
         </div>
       </div>
     );

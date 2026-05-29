@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const passport = require('passport');
+require('./config/passport');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
 const creatorRoutes = require('./routes/creatorRoutes');
@@ -16,6 +18,9 @@ app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
+
+// Initialize Passport middleware
+app.use(passport.initialize());
 
 // Body parser middleware
 app.use(express.json());

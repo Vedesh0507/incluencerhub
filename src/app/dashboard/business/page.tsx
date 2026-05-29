@@ -10,7 +10,6 @@ import {
   IndianRupee, CalendarDays, Tag, Send, Plus, Ban,
   X, ChevronRight,
 } from "lucide-react";
-import { mockCreators } from "@/data/mock";
 import {
   getBusinessRequests,
   getBusinessStats,
@@ -343,13 +342,6 @@ export default function BusinessDashboardPage() {
       bg: "bg-green-50",
     },
     {
-      title: "Total Reach",
-      value: "124K",
-      trend: "+12% vs last month",
-      icon: <Users className="w-6 h-6 text-purple-500" />,
-      bg: "bg-purple-50",
-    },
-    {
       title: "Budget Allocated",
       value: statsLoading ? "—" : `₹${(stats?.totalBudgetSpent ?? 0).toLocaleString("en-IN")}`,
       trend: "Accepted + completed",
@@ -391,9 +383,9 @@ export default function BusinessDashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {statsLoading
-            ? [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
+            ? [1, 2, 3].map((i) => <StatSkeleton key={i} />)
             : statCards.map((stat, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
                   className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
@@ -529,19 +521,8 @@ export default function BusinessDashboardPage() {
                 <h3 className="font-bold text-gray-900 text-lg">Saved Creators</h3>
                 <Link href="/discover" className="text-sm font-medium text-brand-primary hover:underline">Find more</Link>
               </div>
-              <div className="p-6 space-y-4">
-                {mockCreators.slice(0, 4).map((creator, i) => (
-                  <div key={i} className="flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                      <img src={creator.image} alt={creator.name} className="w-10 h-10 rounded-full object-cover" />
-                      <div>
-                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-brand-primary transition-colors">{creator.name}</h4>
-                        <p className="text-xs text-gray-500">{creator.followers} followers</p>
-                      </div>
-                    </div>
-                    <Link href={`/creator/${creator.id}`} className="text-xs text-brand-primary font-medium hover:underline">View</Link>
-                  </div>
-                ))}
+              <div className="p-6 text-center py-6 text-gray-500 text-sm">
+                No saved creators yet
               </div>
             </div>
 

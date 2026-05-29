@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Search, Filter, SlidersHorizontal, CheckCircle, MapPin, MessageCircle, ChevronDown, Loader2 } from "lucide-react";
 import { getAllCreators } from "@/services/creatorService";
-import { mockCreators, mockCategories } from "@/data/mock";
 
 interface Creator {
   _id: string;
@@ -60,7 +59,6 @@ export default function DiscoverPage() {
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 12, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [usingMock, setUsingMock] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,12 +93,9 @@ export default function DiscoverPage() {
       const data = await getAllCreators(filters);
       setCreators(data.creators);
       setPagination(data.pagination);
-      setUsingMock(false);
-    } catch {
-      // Fallback to mock data
-      setUsingMock(true);
+    } catch (err: any) {
       setCreators([]);
-      setError("");
+      setError(err?.message || "Failed to fetch creators");
     } finally {
       setLoading(false);
     }
@@ -136,60 +131,8 @@ export default function DiscoverPage() {
     setIsMobileFiltersOpen(false);
   };
 
-  // Render creator cards — either from API or mock fallback
+  // Render creator cards
   const renderCards = () => {
-    if (usingMock) {
-      return mockCreators.map((creator, index) => (
-        <motion.div
-          key={creator.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: index * 0.05 }}
-          className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all group flex flex-col h-full"
-        >
-          <div className="relative h-48 overflow-hidden group">
-            <img src={creator.image} alt={creator.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-gray-800 shadow-sm">
-              {creator.priceRange}
-            </div>
-          </div>
-          <div className="p-5 flex flex-col flex-grow">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-1.5">
-                  {creator.name}
-                  {creator.verified && <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />}
-                </h3>
-                <p className="text-sm text-brand-primary font-medium">{creator.category}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mt-2 mb-4">
-              <MapPin className="w-4 h-4" />
-              {creator.location}
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-5 border-y border-gray-100 py-4">
-              <div className="text-center">
-                <div className="font-bold text-gray-900">{creator.followers}</div>
-                <div className="text-xs text-gray-500">Followers</div>
-              </div>
-              <div className="text-center border-l border-gray-100">
-                <div className="font-bold text-gray-900">{creator.engagement}</div>
-                <div className="text-xs text-gray-500">Engagement</div>
-              </div>
-            </div>
-            <div className="mt-auto flex flex-col gap-2">
-              <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
-                <MessageCircle className="w-4 h-4" /> WhatsApp Connect
-              </button>
-              <Link href={`/creator/${creator.id}`} className="w-full text-center py-2.5 rounded-xl font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
-                View Profile
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      ));
-    }
-
     if (creators.length === 0) {
       return (
         <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
@@ -424,7 +367,7 @@ export default function DiscoverPage() {
                 </div>
 
                 {/* Pagination */}
-                {!usingMock && pagination.totalPages > 1 && (
+                {pagination.totalPages > 1 && (
                   <div className="mt-12 flex justify-center">
                     <div className="flex items-center gap-2">
                       <button

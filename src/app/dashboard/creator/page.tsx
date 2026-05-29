@@ -643,14 +643,9 @@ export default function CreatorDashboardPage() {
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[1, 2].map((item) => (
-                    <div key={item} className="group relative rounded-xl overflow-hidden aspect-square bg-gray-100 cursor-pointer border border-gray-200">
-                      <img src={`https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=400&q=80&random=${item}`} alt="Portfolio item" className="w-full h-full object-cover" />
-                      <div className="absolute top-2 right-2 bg-white p-1.5 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Edit className="w-4 h-4 text-gray-600" />
-                      </div>
-                    </div>
-                  ))}
+                  <div className="col-span-full text-center py-6 text-gray-500 text-sm">
+                    No portfolio items uploaded yet.
+                  </div>
                   <div className="rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-brand-primary hover:border-brand-primary/50 transition-colors cursor-pointer aspect-square">
                     <Plus className="w-8 h-8 mb-2" />
                     <span className="text-sm font-medium">Upload Media</span>
@@ -703,21 +698,8 @@ export default function CreatorDashboardPage() {
               <div className="p-6 border-b border-gray-100">
                 <h3 className="font-bold text-gray-900">Recent Reviews</h3>
               </div>
-              <div className="p-6 space-y-4">
-                {[
-                  { brand: "Style Boutique", review: "\"Amazing work! The reel got us 50+ new customers.\"" },
-                  { brand: "Tech Gadgets Hub", review: "\"Very professional unboxing video. Delivered as promised.\"" },
-                ].map((r, i) => (
-                  <div key={i} className={i === 0 ? "pb-4 border-b border-gray-50" : ""}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold text-sm text-gray-900">{r.brand}</h4>
-                      <div className="flex gap-0.5">
-                        {[...Array(5)].map((_, j) => <Star key={j} className="w-3 h-3 text-brand-accent fill-brand-accent" />)}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 line-clamp-2">{r.review}</p>
-                  </div>
-                ))}
+              <div className="p-6 text-center py-6 text-gray-500 text-sm">
+                No reviews yet
               </div>
             </div>
           </div>

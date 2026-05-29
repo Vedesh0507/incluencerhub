@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { register } from "@/services/authService";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = searchParams?.get("role") || "creator";
@@ -36,13 +36,11 @@ export default function SignupPage() {
     const result = await register({ name, email, password, role });
 
     if (!result.success) {
-      // Expected API errors (e.g. "User already exists") — show inline, no overlay
       setError(result.error || "Registration failed. Please try again.");
       setLoading(false);
       return;
     }
 
-    // Success — save token and redirect
     localStorage.setItem("token", result.data!.token);
     localStorage.setItem("user", JSON.stringify(result.data!.user));
 
@@ -201,5 +199,17 @@ export default function SignupPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }

@@ -116,8 +116,35 @@ const getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Google OAuth Callback Handler
+// @route   GET /api/auth/google/callback
+// @access  Public
+const googleOAuthCallback = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.redirect('http://localhost:3000/auth/login?error=AuthenticationFailed');
+    }
+
+    const token = generateToken(req.user._id);
+    const userData = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      avatar: req.user.avatar,
+      isVerified: req.user.isVerified,
+    };
+
+    const frontendRedirectUrl = `http://localhost:3000/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`;
+    res.redirect(frontendRedirectUrl);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
+  googleOAuthCallback,
 };

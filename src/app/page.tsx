@@ -1,11 +1,71 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Star, TrendingUp, Users, CheckCircle } from "lucide-react";
-import { mockCreators, mockCategories, mockTestimonials } from "@/data/mock";
+import { ArrowRight, CheckCircle2, Star, TrendingUp, Users, CheckCircle, Loader2, MapPin } from "lucide-react";
+import { getAllCreators } from "@/services/creatorService";
+
+interface Creator {
+  _id: string;
+  username: string;
+  category: string;
+  bio: string;
+  location: string;
+  followers: number;
+  engagementRate: number;
+  pricing: { reel: number; story: number; post: number };
+  platforms: string[];
+  profileImage: string;
+  isVerified: boolean;
+  rating: number;
+  user?: { name: string; email: string };
+}
+
+const CATEGORIES = [
+  { id: "food", name: "Food & Dining", icon: "Utensils" },
+  { id: "fashion", name: "Fashion & Beauty", icon: "Shirt" },
+  { id: "lifestyle", name: "Lifestyle & Vlog", icon: "Activity" },
+  { id: "tech", name: "Tech & Gadgets", icon: "Smartphone" },
+  { id: "travel", name: "Travel & Local", icon: "MapPin" },
+  { id: "fitness", name: "Fitness & Health", icon: "Dumbbell" }
+];
+
+function formatFollowers(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
+  return String(count);
+}
+
+function formatPrice(pricing: { reel: number; story: number; post: number }): string {
+  const min = Math.min(pricing.reel, pricing.story, pricing.post);
+  const max = Math.max(pricing.reel, pricing.story, pricing.post);
+  if (min === 0 && max === 0) return "Contact";
+  return `₹${min.toLocaleString("en-IN")} - ₹${max.toLocaleString("en-IN")}`;
+}
 
 export default function Home() {
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const data = await getAllCreators({ limit: 4 });
+        if (data && Array.isArray(data.creators)) {
+          setCreators(data.creators);
+        }
+      } catch (err) {
+        console.error("Failed to load featured creators:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
+  const firstCreator = creators[0];
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* HERO SECTION */}
@@ -50,15 +110,15 @@ export default function Home() {
               {/* Stats */}
               <div className="mt-12 grid grid-cols-3 gap-6 border-t border-gray-200 pt-8">
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">500+</div>
+                  <div className="text-3xl font-bold text-gray-900">Real-time</div>
                   <div className="text-sm text-gray-500 mt-1">Local Creators</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">2.5M</div>
-                  <div className="text-sm text-gray-500 mt-1">Total Audience</div>
+                  <div className="text-3xl font-bold text-gray-900">Direct</div>
+                  <div className="text-sm text-gray-500 mt-1">WhatsApp Connect</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">₹10L+</div>
+                  <div className="text-3xl font-bold text-gray-900">Verified</div>
                   <div className="text-sm text-gray-500 mt-1">Creator Earnings</div>
                 </div>
               </div>
@@ -73,15 +133,19 @@ export default function Home() {
               {/* Floating Cards Demo */}
               <div className="absolute top-10 right-10 w-64 bg-white p-4 rounded-2xl shadow-xl z-20 animate-[bounce_8s_ease-in-out_infinite]">
                 <div className="flex items-center gap-4 mb-3">
-                  <img src={mockCreators[0].image} alt={mockCreators[0].name} className="w-12 h-12 rounded-full object-cover" />
+                  <img 
+                    src={firstCreator?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80"} 
+                    alt={firstCreator?.user?.name || "Featured Creator"} 
+                    className="w-12 h-12 rounded-full object-cover" 
+                  />
                   <div>
-                    <h4 className="font-bold text-sm">{mockCreators[0].name}</h4>
-                    <p className="text-xs text-gray-500">{mockCreators[0].category}</p>
+                    <h4 className="font-bold text-sm">{firstCreator?.user?.name || "Join Us Today"}</h4>
+                    <p className="text-xs text-gray-500 capitalize">{firstCreator?.category || "Content Creator"}</p>
                   </div>
                 </div>
                 <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm">
-                  <span className="font-semibold">{mockCreators[0].followers}</span>
-                  <span className="text-brand-secondary font-medium">Available</span>
+                  <span className="font-semibold">{firstCreator ? formatFollowers(firstCreator.followers) : "10K+"}</span>
+                  <span className="text-brand-secondary font-medium">Active Now</span>
                 </div>
               </div>
 
@@ -92,7 +156,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">Campaign Success</h4>
-                    <p className="text-xs text-gray-500">+124% Engagement</p>
+                    <p className="text-xs text-gray-500">Real Engagement</p>
                   </div>
                 </div>
               </div>
@@ -113,7 +177,7 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {mockCategories.map((category, index) => (
+            {CATEGORIES.map((category, index) => (
               <motion.div 
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -124,11 +188,9 @@ export default function Home() {
                 className="bg-gray-50 border border-gray-100 p-6 rounded-2xl text-center cursor-pointer hover:shadow-md transition-all group"
               >
                 <div className="w-12 h-12 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:bg-brand-primary transition-colors">
-                  {/* Since dynamic lucide icons are complex, I'll use a generic icon styling for demo */}
                   <Star className="w-6 h-6 text-brand-primary group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">{category.name}</h3>
-                <p className="text-sm text-gray-500">{category.count} creators</p>
               </motion.div>
             ))}
           </div>
@@ -148,56 +210,76 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="flex overflow-x-auto gap-6 pb-8 snap-x hide-scrollbar">
-            {mockCreators.map((creator, index) => (
-              <motion.div 
-                key={creator.id}
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all snap-start flex-shrink-0"
-              >
-                <div className="relative h-48 overflow-hidden group">
-                  <img src={creator.image} alt={creator.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-gray-800">
-                    {creator.priceRange}
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 flex items-center gap-1">
-                        {creator.name}
-                        {creator.verified && <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />}
-                      </h3>
-                      <p className="text-sm text-gray-500">{creator.category}</p>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-brand-primary animate-spin mb-2" />
+              <p className="text-gray-500 text-sm">Loading featured creators...</p>
+            </div>
+          ) : creators.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center max-w-md mx-auto">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No creators registered yet</h3>
+              <p className="text-gray-500 text-sm mb-6">Be the first to create your profile and showcase your portfolio to local brands!</p>
+              <Link href="/auth/role" className="bg-brand-primary text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-700 transition">
+                Register as Creator
+              </Link>
+            </div>
+          ) : (
+            <div className="flex overflow-x-auto gap-6 snap-x hide-scrollbar">
+              {creators.map((creator, index) => (
+                <motion.div 
+                  key={creator._id}
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all snap-start flex-shrink-0"
+                >
+                  <div className="relative h-48 overflow-hidden group">
+                    <img 
+                      src={creator.profileImage || `https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=80`} 
+                      alt={creator.user?.name || creator.username} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    />
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-gray-800">
+                      {formatPrice(creator.pricing)}
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 my-4">
-                    <div className="bg-gray-50 p-2 rounded-lg text-center">
-                      <div className="font-bold text-gray-900">{creator.followers}</div>
-                      <div className="text-xs text-gray-500">Followers</div>
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 flex items-center gap-1">
+                          {creator.user?.name || creator.username}
+                          {creator.isVerified && <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />}
+                        </h3>
+                        <p className="text-sm text-gray-500 capitalize">{creator.category}</p>
+                      </div>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded-lg text-center">
-                      <div className="font-bold text-gray-900">{creator.engagement}</div>
-                      <div className="text-xs text-gray-500">Engagement</div>
+                    
+                    <div className="grid grid-cols-2 gap-4 my-4">
+                      <div className="bg-gray-50 p-2 rounded-lg text-center">
+                        <div className="font-bold text-gray-900">{formatFollowers(creator.followers)}</div>
+                        <div className="text-xs text-gray-500">Followers</div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded-lg text-center">
+                        <div className="font-bold text-gray-900">{creator.engagementRate}%</div>
+                        <div className="text-xs text-gray-500">Engagement</div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-5">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    {creator.location}
-                  </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-5">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      {creator.location || "Not specified"}
+                    </div>
 
-                  <Link href={`/creator/${creator.id}`} className="block w-full text-center py-2.5 rounded-xl font-medium text-brand-primary bg-blue-50 hover:bg-blue-100 transition-colors">
-                    View Profile
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    <Link href={`/creator/${creator._id}`} className="block w-full text-center py-2.5 rounded-xl font-medium text-brand-primary bg-blue-50 hover:bg-blue-100 transition-colors">
+                      View Profile
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
           
           <div className="mt-4 text-center md:hidden">
             <Link href="/discover" className="inline-flex items-center gap-2 text-brand-primary font-semibold hover:underline">
@@ -216,7 +298,6 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12 relative">
-            {/* Connecting line for desktop */}
             <div className="hidden md:block absolute top-24 left-1/6 right-1/6 h-0.5 bg-gray-100 -z-10">
               <div className="absolute top-0 left-0 h-full bg-brand-primary/20 w-full"></div>
             </div>
@@ -239,43 +320,6 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS SECTION */}
-      <section className="py-24 bg-brand-primary text-white">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Success Stories in Vijayawada</h2>
-            <p className="text-blue-100 max-w-2xl mx-auto text-lg">Hear from businesses and creators growing together.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {mockTestimonials.map((testimonial, index) => (
-              <motion.div 
-                key={testimonial.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-                className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl"
-              >
-                <div className="flex gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-brand-accent fill-brand-accent" />
-                  ))}
-                </div>
-                <p className="text-xl font-medium leading-relaxed mb-8">"{testimonial.text}"</p>
-                <div className="flex items-center gap-4">
-                  <img src={testimonial.image} alt={testimonial.name} className="w-14 h-14 rounded-full object-cover border-2 border-white/30" />
-                  <div>
-                    <h4 className="font-bold text-lg">{testimonial.name}</h4>
-                    <p className="text-blue-200 text-sm">{testimonial.role}</p>
-                  </div>
-                </div>
               </motion.div>
             ))}
           </div>
